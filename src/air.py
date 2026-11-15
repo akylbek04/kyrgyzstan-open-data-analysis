@@ -35,14 +35,28 @@ def fetch_day(d, retries=4):
         except OSError:
             pass
         time.sleep(2 ** attempt)
-    raise RuntimeError(f"AirNow download failed for {d} after {retries} attempts")
+    raise ConnectionError(d)
+
+
+def _safe(d):
+    try:
+        return fetch_day(d)
+    except ConnectionError:
+        return "failed", d
 
 
 def fetch_air():
     days = [START + timedelta(n) for n in range((END - START).days + 1)]
-    with ThreadPoolExecutor(8) as pool:
-        rows = [r for r in pool.map(fetch_day, days) if r]
-    df = pd.DataFrame(rows, columns=["date", "pm25"]).set_index("date")
+    with ThreadPoolExecutor(4) as pool:
+        results = list(pool.map(_safe, days))
+    # second pass: retry the failed days one at a time, then give up loudly
+    rows = [r for r in results if r and r[0] != "failed"]
+    for r in results:
+        if r and r[0] == "failed":
+            res = fetch_day(r[1], retries=6)
+            if res:
+                rows.append(res)
+    df = pd.DataFrame(rows, columns=["date", "pm25"]).set_index("date").sort_index()
     return df[df["pm25"] >= 0]  # AirNow uses -999 for invalid readings
 
 
