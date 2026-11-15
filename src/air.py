@@ -3,8 +3,10 @@
 AirNow publishes one global file per hour (~0.7 MB). To keep the download small we take ONE file per day:
 15:00 UTC = 21:00 Bishkek time, which falls in the evening heating-season peak.
 """
+import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
+from urllib.error import HTTPError
 from urllib.request import urlopen
 
 import pandas as pd
@@ -14,17 +16,26 @@ URL = "https://files.airnowtech.org/airnow/{d:%Y}/{d:%Y%m%d}/HourlyData_{d:%Y%m%
 START, END = date(2023, 1, 1), date(2025, 12, 31)
 
 
-def fetch_day(d):
-    """Return (date, pm25) or None when the file or the reading is missing."""
-    try:
-        with urlopen(URL.format(d=d), timeout=60) as r:
-            for line in r.read().decode("latin1").splitlines():
-                f = line.split("|")
-                if f[2] == SITE and f[5] == "PM2.5":
-                    return d, float(f[7])
-    except Exception:
-        pass
-    return None
+def fetch_day(d, retries=4):
+    """Return (date, pm25), or None when the file or the reading does not exist.
+
+    Network errors are retried; a 404 means AirNow has no file for that hour, so we skip it.
+    """
+    for attempt in range(retries):
+        try:
+            with urlopen(URL.format(d=d), timeout=60) as r:
+                for line in r.read().decode("latin1").splitlines():
+                    f = line.split("|")
+                    if f[2] == SITE and f[5] == "PM2.5":
+                        return d, float(f[7])
+            return None
+        except HTTPError as e:
+            if e.code == 404:
+                return None
+        except OSError:
+            pass
+        time.sleep(2 ** attempt)
+    raise RuntimeError(f"AirNow download failed for {d} after {retries} attempts")
 
 
 def fetch_air():

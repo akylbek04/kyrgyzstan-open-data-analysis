@@ -1,5 +1,6 @@
 """Download hourly Bishkek weather from Open-Meteo (free, no API key)."""
 import json
+import time
 from urllib.parse import urlencode
 from urllib.request import urlopen
 
@@ -12,8 +13,15 @@ PARAMS = {"latitude": 42.87, "longitude": 74.59, "start_date": "2023-01-01",
 
 
 def fetch_weather():
-    with urlopen(f"{URL}?{urlencode(PARAMS)}", timeout=120) as r:
-        df = pd.DataFrame(json.load(r)["hourly"])
+    for attempt in range(4):
+        try:
+            with urlopen(f"{URL}?{urlencode(PARAMS)}", timeout=120) as r:
+                df = pd.DataFrame(json.load(r)["hourly"])
+            break
+        except OSError:
+            if attempt == 3:
+                raise
+            time.sleep(2 ** attempt)
     df["time"] = pd.to_datetime(df["time"])
     return df.set_index("time")
 
