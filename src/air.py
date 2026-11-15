@@ -13,7 +13,7 @@ import pandas as pd
 
 SITE = "417BI1010001"
 URL = "https://files.airnowtech.org/airnow/{d:%Y}/{d:%Y%m%d}/HourlyData_{d:%Y%m%d}15.dat"
-START, END = date(2023, 1, 1), date(2025, 12, 31)
+START, END = date(2023, 1, 1), date(2025, 3, 3)  # the station stopped reporting after 2025-03-03
 
 
 def fetch_day(d, retries=4):

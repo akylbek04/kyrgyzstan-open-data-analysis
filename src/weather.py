@@ -8,7 +8,7 @@ import pandas as pd
 
 URL = "https://archive-api.open-meteo.com/v1/archive"
 PARAMS = {"latitude": 42.87, "longitude": 74.59, "start_date": "2023-01-01",
-          "end_date": "2025-12-31", "timezone": "Asia/Bishkek",
+          "end_date": "2025-03-03", "timezone": "Asia/Bishkek",
           "hourly": "temperature_2m,relative_humidity_2m,wind_speed_10m"}
 
 
