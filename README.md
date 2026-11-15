@@ -31,7 +31,7 @@ src/         air.py (AirNow), weather.py (Open-Meteo), data.py (build the CSV)
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python -m src.data        # rebuild the dataset (about 10 minutes)
+python -m src.data        # rebuild the dataset (downloads about 800 daily files, so it takes a while)
 jupyter notebook notebooks/
 ```
 
